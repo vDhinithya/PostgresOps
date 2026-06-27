@@ -1,0 +1,31 @@
+services:
+
+  postgres-primary:
+
+    image: postgres:16
+    env_file:
+      - ../../env/postgres.env
+
+    container_name: postgresops-primary
+
+    hostname: postgresops-primary
+
+    restart: unless-stopped
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-primary-data:/var/lib/postgresql/data
+
+    networks:
+      - postgresops-network
+
+volumes:
+
+  postgres-primary-data:
+
+networks:
+
+  postgresops-network:
+    driver: bridge
