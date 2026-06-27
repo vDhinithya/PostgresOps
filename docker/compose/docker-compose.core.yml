@@ -3,6 +3,10 @@ services:
   postgres-primary:
 
     image: postgres:16
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
     env_file:
       - ../../env/postgres.env
 
@@ -17,6 +21,7 @@ services:
 
     volumes:
       - postgres-primary-data:/var/lib/postgresql/data
+      - ../../configs/postgres:/etc/postgresql:ro
 
     networks:
       - postgresops-network
