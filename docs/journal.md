@@ -1,313 +1,520 @@
-# Engineering Journal
+# PostgresOps Journal
 
-This journal documents the development journey of **PostgresOps**.
+> Operational runbook and development journal for the **PostgresOps** project.
 
-Unlike the formal documentation in this repository, this file captures the day-to-day engineering progress, architectural decisions, implementation notes, challenges, and lessons learned throughout the project.
-
----
-
-# Entry Format
-
-Each entry contains:
-
-- Date
-- Phase
-- Objective
-- Work Completed
-- Challenges
-- Lessons Learned
-- Next Steps
+This document serves as a quick reference for starting the infrastructure, verifying cluster health, performing replication tests, and troubleshooting the PostgreSQL cluster during development.
 
 ---
 
-# Journal Entries
+# Project Status
+
+| Phase | Status |
+|--------|--------|
+| Phase 0 — Project Planning | ✅ Completed |
+| Phase 1 — High Availability Cluster | ✅ Completed |
+| Phase 2 — Backup & Recovery | ⏳ Upcoming |
+| Phase 3 — Monitoring & Observability | ⏳ Upcoming |
+| Phase 4 — DBA Automation Service | ⏳ Upcoming |
+| Phase 5 — CI/CD & Security | ⏳ Upcoming |
 
 ---
 
-# Entry #1
+# Current Cluster
 
-**Date:** 2026-06-27
+```mermaid
+flowchart TD
 
-**Phase:** Phase 0 — Repository Foundation
+    P["PostgreSQL Primary"]
 
-## Objective
+    R1["Replica 1"]
 
-Lay a strong engineering foundation before writing any infrastructure or application code.
+    R2["Replica 2"]
 
-## Work Completed
-
-- Planned the complete project roadmap.
-- Finalized the technology stack.
-- Designed the repository structure.
-- Created the documentation framework.
-- Wrote the initial README.
-- Created:
-    - `architecture.md`
-    - `roadmap.md`
-    - `journal.md`
-- Published the initial GitHub release (`v0.0.1`).
-- Adopted Conventional Commits for version control.
-
-## Challenges
-
-No technical challenges.
-
-The primary focus was designing a repository that can scale as additional infrastructure components are introduced.
-
-## Lessons Learned
-
-A well-organized repository significantly improves maintainability and future development.
-
-Investing time in documentation before implementation creates a clear roadmap and reduces future rework.
-
-## Next Steps
-
-Design the Docker infrastructure and deploy the first PostgreSQL instance.
-
----
-
-# Entry #2
-
-**Date:** 2026-06-27
-
-**Phase:** Phase 1.1 — Docker Infrastructure Foundation
-
-## Objective
-
-Deploy the first PostgreSQL instance using Docker Compose while establishing the project's infrastructure conventions.
-
-## Work Completed
-
-### Infrastructure Design
-
-- Designed the Docker-based architecture.
-- Chose PostgreSQL 16 as the database version.
-- Adopted a modular Docker Compose strategy.
-- Planned a dedicated Docker bridge network for inter-service communication.
-- Defined the persistent volume strategy for database storage.
-- Created a scalable directory structure for:
-    - PostgreSQL
-    - pgAdmin
-    - Patroni
-    - Monitoring
-    - Future services
-
-### Docker Environment
-
-- Relocated Docker Desktop's storage location to the **D:** drive to avoid consuming system drive space.
-- Created a dedicated Docker environment for the project.
-
-### Docker Compose
-
-Created the first infrastructure definition:
-
-- PostgreSQL Primary
-- Named Volume
-- Bridge Network
-- Environment file support
-- Automatic restart policy
-
-### PostgreSQL Deployment
-
-Successfully deployed the first PostgreSQL container.
-
-Verified:
-
-- PostgreSQL initialization
-- Persistent volume creation
-- Docker network creation
-- Database accessibility
-- Interactive `psql` connection
-- Environment variable initialization
-
-Executed verification commands including:
-
-```sql
-SELECT version();
-
-SELECT current_database();
-
-SELECT current_user();
+    P -->|Streaming Replication| R1
+    P -->|Streaming Replication| R2
 ```
 
-Successfully connected to the PostgreSQL server and confirmed the initial database configuration.
+Current Replication Mode
 
-## Challenges
+- Streaming Replication
+- Asynchronous Replication
+- WAL Shipping
+- One Primary
+- Two Read-only Replicas
 
-### Docker Compose Resource Naming
+---
 
-Observed that Docker Compose automatically prefixes resource names with the project name.
-
-Example:
+# Repository Root
 
 ```text
-compose_postgresops-network
-compose_postgres-primary-data
-```
+PostgresOps/
 
-Learned how Docker Compose determines project names and discussed strategies for assigning explicit names in future iterations.
-
-### PostgreSQL Initialization Process
-
-Initially appeared as if PostgreSQL was restarting unexpectedly.
-
-Learned that the official PostgreSQL Docker image intentionally:
-
-1. Initializes the database cluster.
-2. Creates the configured database.
-3. Executes initialization scripts.
-4. Gracefully shuts down.
-5. Restarts PostgreSQL in normal operation mode.
-
-This behavior is expected during the first startup.
-
-### Local Socket Connections
-
-Discovered that connecting via `docker exec` uses Unix domain sockets rather than TCP/IP, which explains why:
-
-```sql
-SELECT inet_server_addr(), inet_server_port();
-```
-
-returned `NULL` values.
-
-## Lessons Learned
-
-This phase introduced several important infrastructure concepts:
-
-- Docker Compose project lifecycle.
-- Docker bridge networking.
-- Named Docker volumes.
-- PostgreSQL container initialization.
-- Environment-based configuration.
-- Container inspection using:
-    - `docker ps`
-    - `docker logs`
-    - `docker network inspect`
-    - `docker volume inspect`
-- Interactive database administration using `psql`.
-
-More importantly, it reinforced the principle that infrastructure should be **understood**, not merely copied.
-
-Every Docker directive was examined and justified before implementation.
-
-## Next Steps
-
-Prepare the PostgreSQL primary node for streaming replication by introducing custom PostgreSQL configuration.
-
-Upcoming work includes:
-
-- Custom `postgresql.conf`
-- Custom `pg_hba.conf`
-- WAL configuration
-- Replication user
-- Replication-ready primary node
-
----
-
-# Upcoming Entries
-
-The following milestones will be documented as they are completed:
-
-- PostgreSQL Replication
-- Backup & Recovery
-- Point-in-Time Recovery (PITR)
-- Monitoring Stack
-- Logging Stack
-- Spring Boot Control Plane
-- High Availability
-- CI/CD Pipeline
-- Production Hardening
-
----
-
-# Engineering Notes
-
-## Engineering Workflow
-
-The project follows the workflow:
-
-```text
-Design
-    ↓
-Implement
-    ↓
-Verify
-    ↓
-Document
-    ↓
-Commit
-    ↓
-Push
-```
-
-This workflow ensures that every change is intentional, validated, and documented.
-
----
-
-# PostgreSQL Commands Learned
-
-```sql
-SELECT version();
-
-SELECT current_database();
-
-SELECT current_user();
-
-SELECT inet_server_addr(), inet_server_port();
+docker/
+configs/
+scripts/
+docs/
+backups/
+control-plane/
+docker-compose.yml
 ```
 
 ---
 
-# Docker Commands Learned
+# Docker Operations
+
+## Start Entire Cluster
 
 ```bash
 docker compose up -d
-
-docker ps
-
-docker logs <container>
-
-docker network ls
-
-docker network inspect <network>
-
-docker volume ls
-
-docker volume inspect <volume>
-
-docker exec -it <container> psql -U postgres -d postgresops
 ```
 
 ---
 
-# Performance Benchmarks
+## Stop Entire Cluster
 
-## Primary Node Startup
-
-- PostgreSQL initialization completed successfully.
-- Container startup completed without errors.
-- Persistent volume successfully mounted.
-- Database ready to accept connections.
-
-*(More benchmarks will be added as monitoring is introduced.)*
+```bash
+docker compose down
+```
 
 ---
 
-# Problems Encountered
+## Stop Cluster and Remove Volumes (Destructive)
 
-## Docker Compose Automatic Resource Prefixing
+```bash
+docker compose down -v
+```
 
-Docker Compose automatically prefixes networks and volumes with the project name unless explicit names are configured.
-
-This behavior should be considered when writing automation scripts.
+Use only when you want to completely recreate the PostgreSQL cluster.
 
 ---
 
-# Future Improvements
+## Restart Cluster
 
-- Add Docker health checks.
-- Use explicit network and volume names.
-- Introduce Docker Compose profiles.
-- Split infrastructure into multiple Compose files as the project grows.
-- Replace environment variables with Docker Secrets during the security phase.
+```bash
+docker compose restart
+```
+
+---
+
+## View Running Containers
+
+```bash
+docker ps
+```
+
+---
+
+## View All Containers
+
+```bash
+docker ps -a
+```
+
+---
+
+## List Docker Networks
+
+```bash
+docker network ls
+```
+
+---
+
+## Inspect Cluster Network
+
+```bash
+docker network inspect compose_postgresops-network
+```
+
+---
+
+## List Docker Volumes
+
+```bash
+docker volume ls
+```
+
+---
+
+## View Container Logs
+
+### Primary
+
+```bash
+docker logs postgresops-primary
+```
+
+Live logs
+
+```bash
+docker logs -f postgresops-primary
+```
+
+---
+
+### Replica 1
+
+```bash
+docker logs postgresops-replica1
+```
+
+---
+
+### Replica 2
+
+```bash
+docker logs postgresops-replica2
+```
+
+---
+
+# PostgreSQL Access
+
+## Connect to Primary
+
+```bash
+docker exec -it postgresops-primary \
+psql -U postgres -d postgresops
+```
+
+---
+
+## Connect to Replica 1
+
+```bash
+docker exec -it postgresops-replica1 \
+psql -U postgres -d postgresops
+```
+
+---
+
+## Connect to Replica 2
+
+```bash
+docker exec -it postgresops-replica2 \
+psql -U postgres -d postgresops
+```
+
+---
+
+# Cluster Verification
+
+## Verify Primary
+
+```sql
+SELECT pg_is_in_recovery();
+```
+
+Expected
+
+```text
+false
+```
+
+---
+
+## Verify Replica
+
+```sql
+SELECT pg_is_in_recovery();
+```
+
+Expected
+
+```text
+true
+```
+
+---
+
+## Verify Streaming Replication
+
+Run on Primary
+
+```sql
+SELECT
+    client_addr,
+    state,
+    sync_state
+FROM pg_stat_replication;
+```
+
+Expected
+
+```text
+2 rows
+
+state = streaming
+
+sync_state = async
+```
+
+---
+
+## Check Replication Lag
+
+```sql
+SELECT
+    client_addr,
+    state,
+    sync_state,
+    pg_wal_lsn_diff(sent_lsn, replay_lsn)
+AS replication_lag_bytes
+FROM pg_stat_replication;
+```
+
+Healthy Output
+
+```text
+replication_lag_bytes = 0
+```
+
+---
+
+# Replication Testing
+
+## Create Test Table
+
+```sql
+CREATE TABLE test_replication(
+
+    id SERIAL PRIMARY KEY,
+
+    message TEXT,
+
+    created_at TIMESTAMP DEFAULT NOW()
+
+);
+```
+
+---
+
+## Insert Test Record
+
+```sql
+INSERT INTO test_replication(message)
+VALUES('Hello from Primary');
+```
+
+---
+
+## Verify Replication
+
+Run on Replica
+
+```sql
+SELECT *
+FROM test_replication
+ORDER BY id;
+```
+
+Expected
+
+Data inserted into Primary should automatically appear on both replicas.
+
+---
+
+# Failure Simulation
+
+## Stop Replica 1
+
+```bash
+docker stop postgresops-replica1
+```
+
+---
+
+## Start Replica 1
+
+```bash
+docker start postgresops-replica1
+```
+
+---
+
+## Stop Replica 2
+
+```bash
+docker stop postgresops-replica2
+```
+
+---
+
+## Start Replica 2
+
+```bash
+docker start postgresops-replica2
+```
+
+---
+
+## Verify Automatic Catch-up
+
+1. Stop Replica
+2. Insert new rows into Primary
+3. Start Replica
+4. Verify missing rows appear automatically
+
+---
+
+# Health Check Script
+
+Execute
+
+```bash
+./scripts/replication-health.sh
+```
+
+Expected Output
+
+```text
+client_addr
+
+state
+
+sync_state
+
+replication_lag_bytes
+```
+
+Healthy Cluster
+
+```text
+streaming
+
+async
+
+0 bytes lag
+```
+
+---
+
+# Useful SQL Queries
+
+## Current Database
+
+```sql
+SELECT current_database();
+```
+
+---
+
+## Current User
+
+```sql
+SELECT current_user;
+```
+
+---
+
+## PostgreSQL Version
+
+```sql
+SELECT version();
+```
+
+---
+
+## Show Configuration File
+
+```sql
+SHOW config_file;
+```
+
+---
+
+## Show pg_hba.conf
+
+```sql
+SHOW hba_file;
+```
+
+---
+
+## List Roles
+
+```sql
+SELECT
+rolname,
+rolreplication
+FROM pg_roles;
+```
+
+---
+
+## Show Replication Users
+
+```sql
+SELECT
+rolname
+FROM pg_roles
+WHERE rolreplication = true;
+```
+
+---
+
+# Phase 1 Achievements
+
+- ✅ Dockerized PostgreSQL infrastructure
+- ✅ Primary database server
+- ✅ Replica 1
+- ✅ Replica 2
+- ✅ Custom PostgreSQL configuration
+- ✅ Custom pg_hba.conf
+- ✅ Replication user
+- ✅ Streaming Replication
+- ✅ WAL-based synchronization
+- ✅ Replica bootstrap automation
+- ✅ Multi-replica architecture
+- ✅ Replication health monitoring
+- ✅ Failure and recovery validation
+- ✅ Live data synchronization testing
+
+---
+
+# Lessons Learned
+
+## PostgreSQL Streaming Replication
+
+- Primary generates WAL records.
+- Replicas continuously receive WAL.
+- Replicas replay WAL to remain synchronized.
+
+---
+
+## Replica Recovery
+
+If a replica becomes unavailable:
+
+1. Primary continues accepting writes.
+2. WAL files continue accumulating.
+3. Replica reconnects.
+4. Missing WAL is streamed.
+5. Replica automatically catches up.
+
+---
+
+## Replication Characteristics
+
+Current configuration
+
+- Asynchronous Replication
+- Read-only replicas
+- Continuous WAL streaming
+- Automatic recovery after downtime
+
+---
+
+# Next Milestone
+
+## Phase 2 — Backup & Disaster Recovery
+
+Upcoming work
+
+- Automated `pg_dump`
+- Physical Backups (`pg_basebackup`)
+- WAL Archiving
+- Point-in-Time Recovery (PITR)
+- Restore Automation
+- Backup Retention Policies
+- MinIO Integration
